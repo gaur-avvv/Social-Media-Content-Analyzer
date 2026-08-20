@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise Social Media Content Analyzer",
+  "description": "Enterprise-grade resilient hybrid edge & cloud social media content analyzer and RAG copilot powered by LlamaIndex concepts, Google Gemini, Knowledge Graph routing, and automated LLM-as-a-judge evaluation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
