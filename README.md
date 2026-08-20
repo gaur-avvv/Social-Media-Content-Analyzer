@@ -70,17 +70,18 @@ This platform is engineered to resolve the two primary failure modes of traditio
 
 ## 🛡️ Multi-Tier Resiliency & Timeout Architecture
 
-To protect user P95 latency and ensure 100% operational availability during network dropouts or cloud API degradation, the system implements a **3-Tier Graceful Degradation Engine**:
+To protect user P95 latency and ensure 100% operational availability during network dropouts, quota exhaustion (429), or cloud API degradation, the system implements a **Multi-Tier Graceful Degradation Engine**:
 
-1. **Tier 1 (Primary Cloud Pipeline)**:
+1. **Tier 1 (Primary Cloud Pipeline & Broker)**:
    - Orchestrates serverless document processing using **LlamaParse** and **Google Gemini Multimodal Vision**.
    - Concurrently executes **Live Web Search Grounding** to ensure trend compliance.
+   - Core generation is managed by a **Resilient Multi-Provider Broker**: targets **Gemini 2.5 Flash** as primary.
    - Enforced by a **strict 7,500ms network timeout gate** via `AbortSignal.timeout(7500)`.
-2. **Tier 2 (Hardware-Accelerated Client Engine)**:
-   - If Tier 1 encounters a timeout, connection interruption, or HTTP 5xx error, execution seamlessly routes to the browser thread.
-   - Utilizes **WebAssembly (WASM)** and **WebGPU** hardware acceleration via **ONNX Runtime Web / WebTFLite** to extract text and layout features locally without remote overhead.
+2. **Tier 2 (Unauthenticated Open-Source & Hardware-Accelerated Client Fallbacks)**:
+   - **Generation Broker Fallback**: If Gemini encounters a `429 QuotaExceeded` or missing key, traffic immediately routes to **Pollinations.ai Free Tier** (`openai-large`), maintaining high-quality generation without credentials or token costs.
+   - **Client OCR Fallback**: If cloud ingestion routes drop, the browser thread uses **Tesseract.js Web Workers** and **WASM/WebGPU** to extract text and layout features locally without remote overhead.
 3. **Tier 3 (Air-Gapped Deterministic Fail-Safe)**:
-   - For legacy browsers or restricted client environments, the system falls back to a deterministic, rule-based formatting engine grounded in static JSON algorithm matrices.
+   - For offline or air-gapped environments, the system falls back to a deterministic formatting engine grounded in static JSON algorithm matrices.
    - Emits structured copywriting templates (PAS, AIDA, Hook placement) ensuring zero user interruption.
 
 ---
@@ -286,12 +287,12 @@ Our Supabase Vector database layer is reinforced with a Hierarchical Navigable S
 
 ## 📝 200-Word Approach Write-Up (Submission Summary)
 
-> **Social Media Content Analyzer** implements a multimodal GraphRAG architecture designed to extract, analyze, and optimize cross-platform social content with verified engagement heuristics.
+> **Social Media Content Analyzer** implements a multimodal GraphRAG architecture designed to extract, analyze, and optimize cross-platform social content with verified engagement heuristics and multi-tier edge resilience.
 >
-> 1. **Multimodal Ingestion & LlamaParse OCR**: PDF documents and scanned images are processed through an intelligent parsing pipeline that preserves tabular hierarchies and extracts clean text via Vision OCR with instant browser-native fallback.
-> 2. **GraphRAG & Strategic Heuristics**: Extracted claims are grounded against platform-specific algorithm graphs (LinkedIn, Instagram, X/Twitter, Threads) enforcing 3-second hook placement, PAS/AIDA copywriting frameworks, and high-retention readability formatting.
-> 3. **Real-Time Web Search Grounding**: Live Google Search integration researches current trending topics, algorithm updates, and viral format changes in real time to ground optimization suggestions with verified citations.
-> 4. **Evaluation Quality Gate**: An automated LLM-as-a-Judge test harness evaluates groundedness (≥0.85), context precision, and hallucination guardrails before publication.
+> 1. **Multimodal Ingestion & LlamaParse OCR**: Multi-page documents and graphic assets are ingested via LlamaParse and Gemini Vision OCR, with hardware-accelerated **Tesseract.js Web Workers** and WASM as on-device fallbacks.
+> 2. **Resilient Multi-Provider Broker**: Text generation targets **Google Gemini 2.5 Flash** as primary and dynamically shifts to **Pollinations.ai Free Tier** (`openai-large`) upon `429 QuotaExceeded` exceptions or unconfigured keys, guaranteeing 100% operational uptime.
+> 3. **GraphRAG & Strategic Heuristics**: Traverses a PostgreSQL Adjacency List Knowledge Graph with HNSW indexes to enforce platform constraints (3-second hook placement, PAS/AIDA frameworks, first-comment link shielding).
+> 4. **Live Search Grounding & Quality Gate**: Integrates real-time Google Search grounding alongside an automated **LLM-as-a-Judge Evaluation Engine (Ragas methodology)** enforcing a 0.85 groundedness gate before publication.
 
 ---
 

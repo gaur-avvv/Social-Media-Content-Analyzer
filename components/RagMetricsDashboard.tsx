@@ -110,13 +110,17 @@ export const RagMetricsDashboard: React.FC<MetricsProps> = ({ metrics, extractio
             <Cpu className="w-3.5 h-3.5 text-purple-400" />
           </div>
           <div className="text-xs font-bold text-white flex items-center gap-1.5 font-mono">
-            {isTier1 ? (
-              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px]">
-                TIER 1: Cloud LlamaParse
+            {metrics.executionTier === 'GEMINI_2.5_CLOUD' || metrics.executionTier.includes('TIER_1') ? (
+              <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-bold">
+                GEMINI 2.5 CLOUD
+              </span>
+            ) : metrics.executionTier === 'POLLINATIONS_AI_FREE_TIER' ? (
+              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[11px] font-bold animate-pulse">
+                POLLINATIONS.AI (FALLBACK)
               </span>
             ) : (
-              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px]">
-                TIER 2: Edge ML Fallback
+              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                {metrics.executionTier.replace(/_/g, ' ')}
               </span>
             )}
           </div>
