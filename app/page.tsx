@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Upload,
   Layers,
   Sparkles,
-  ShieldCheck,
   Zap,
   Copy,
   Check,
@@ -14,23 +13,13 @@ import {
   Activity,
   FileText,
   Trash2,
-  HelpCircle,
-  Cpu,
   RefreshCw,
-  Eye,
-  AlertCircle,
-  Share2,
   Database,
   ArrowRight,
   ExternalLink,
   CheckCircle2,
-  Lightbulb,
   Globe,
-  Search,
   Mic,
-  MicOff,
-  Flame,
-  TrendingUp,
   Radio,
   Save,
   SplitSquareVertical,
@@ -111,7 +100,12 @@ export default function ResilientWorkspace() {
   const [customDirectives, setCustomDirectives] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       try {
-        return localStorage.getItem('sm_analyzer_directives') || '';
+        const stored = localStorage.getItem('sm_analyzer_directives');
+        if (stored && stored.includes('#AIWorkflows')) {
+          localStorage.removeItem('sm_analyzer_directives');
+          return '';
+        }
+        return stored || '';
       } catch {
         return '';
       }
@@ -136,7 +130,6 @@ export default function ResilientWorkspace() {
   const [knowledgeGraph, setKnowledgeGraph] = useState<any>(null);
   const [telemetry, setTelemetry] = useState<any>(null);
   const [extractionLogs, setExtractionLogs] = useState<any[]>([]);
-  const [edgeStatus, setEdgeStatus] = useState<string>('EDGE_AI_READY');
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isCleanCopied, setIsCleanCopied] = useState<boolean>(false);
   const [outputSubView, setOutputSubView] = useState<'clean' | 'full' | 'suggestions' | 'diff'>('clean');
@@ -160,13 +153,7 @@ export default function ResilientWorkspace() {
   const [speechError, setSpeechError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  // Viral Trend Alert Polling State
-  const [viralTrends, setViralTrends] = useState<any[]>([]);
-  const [trendAlert, setTrendAlert] = useState<any>(null);
-  const [trendsLoading, setTrendsLoading] = useState<boolean>(false);
-  const [trendNotification, setTrendNotification] = useState<string | null>(null);
-
-  // 1. LOCAL STORAGE PERSISTENCE - Auto-save changes
+  // Auto-save changes to localStorage
   useEffect(() => {
     try {
       if (rawText !== '') {
@@ -183,7 +170,7 @@ export default function ResilientWorkspace() {
 
   const toggleSpeechRecognition = () => {
     if (!speechSupported) {
-      setSpeechError('Web Speech API dictation is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      setSpeechError('Web Speech API dictation is not supported in this browser.');
       return;
     }
 
@@ -224,7 +211,7 @@ export default function ResilientWorkspace() {
       recognition.onerror = (event: any) => {
         console.warn('Web Speech recognition error:', event.error);
         if (event.error !== 'no-speech') {
-          setSpeechError(`Dictation issue (${event.error}). Ensure microphone permissions are active.`);
+          setSpeechError(`Dictation issue (${event.error}). Check mic permissions.`);
         }
         setIsListening(false);
       };
@@ -241,63 +228,13 @@ export default function ResilientWorkspace() {
     }
   };
 
-  // 3. VIRAL TREND ALERT POLLING SYSTEM
-  const fetchViralTrends = React.useCallback(async (targetPlatform: string) => {
-    setTrendsLoading(true);
-    try {
-      const res = await fetch(`/api/trends?platform=${targetPlatform}`);
-      if (res.ok) {
-        const data = await res.json();
-        setViralTrends(data.trends || []);
-        setTrendAlert(data.activeAlert || null);
-      }
-    } catch (err) {
-      console.warn('Viral trend polling error:', err);
-    } finally {
-      setTrendsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    let isCancelled = false;
-    const pollTrends = async () => {
-      try {
-        const res = await fetch(`/api/trends?platform=${platform}`);
-        if (res.ok && !isCancelled) {
-          const data = await res.json();
-          setViralTrends(data.trends || []);
-          setTrendAlert(data.activeAlert || null);
-        }
-      } catch (err) {
-        console.warn('Viral trend polling error:', err);
-      }
-    };
-
-    pollTrends();
-    const interval = setInterval(pollTrends, 45000); // Poll every 45 seconds
-    return () => {
-      isCancelled = true;
-      clearInterval(interval);
-    };
-  }, [platform]);
-
-  const insertTrendToDirectives = (tagOrHook: string) => {
-    setCustomDirectives((prev) => {
-      if (!prev.trim()) return tagOrHook;
-      if (prev.includes(tagOrHook)) return prev;
-      return `${prev}, ${tagOrHook}`;
-    });
-    setTrendNotification(`Applied "${tagOrHook}" to Directives!`);
-    setTimeout(() => setTrendNotification(null), 3000);
-  };
-
-  const cleanPostText = React.useMemo(() => cleanSocialPostText(output), [output]);
-  const suggestionsText = React.useMemo(() => {
+  const cleanPostText = useMemo(() => cleanSocialPostText(output), [output]);
+  const suggestionsText = useMemo(() => {
     const idx = output.indexOf('## IMPROVED ENGAGEMENT SUGGESTIONS');
     return idx !== -1 ? output.slice(idx).trim() : '';
   }, [output]);
 
-  const ingestFileIntoState = React.useCallback(async (file: File) => {
+  const ingestFileIntoState = useCallback(async (file: File) => {
     const isHighDensity = file.size > 200000;
     const fallbackText = `[Extracted via Local Edge ML Engine]: Document "${file.name}" (${(
       file.size / 1024
@@ -325,7 +262,7 @@ export default function ResilientWorkspace() {
     };
   }, []);
 
-  // TRIGGER CLIPBOARD PASTE CAPABILITY (Ctrl+V / Command+V)
+  // Clipboard Paste Capability (Ctrl+V / Command+V)
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -338,7 +275,6 @@ export default function ResilientWorkspace() {
             await ingestFileIntoState(file);
           }
         } else if (items[i].type === 'text/plain') {
-          // If not currently focused in an input/textarea
           const target = e.target as HTMLElement;
           if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
             items[i].getAsString((pastedString) => {
@@ -421,21 +357,14 @@ export default function ResilientWorkspace() {
       setTelemetry(data.metrics);
       setWebSearchData(data.webSearch || null);
       setExtractionLogs(data.extractionLogs || []);
-      setEdgeStatus(
-        data.metrics?.executionTier?.includes('EDGE')
-          ? 'EDGE_AI_ACTIVE_FALLBACK'
-          : 'TIER_1_PRIMARY_CLOUD_ACTIVE'
-      );
       setActiveTab('output');
     } catch (err: any) {
-      console.warn('Cloud ingestion pipeline interrupted, activating Tesseract.js edge fallback routing:', err);
-      setEdgeStatus('EDGE_AI_ACTIVE_FALLBACK');
+      console.warn('Cloud ingestion pipeline interrupted, activating fallback routing:', err);
 
       let fallbackHandled = false;
       if (fileList.length > 0) {
         try {
           const firstItem = fileList[0];
-          // Reconstruct a File object or fallback directly
           const blob = new Blob([firstItem.fallbackText || 'Fallback text content'], { type: firstItem.mimeType });
           const fileObj = new File([blob], firstItem.name, { type: firstItem.mimeType });
           const fallbackRes = await resilientAssetIngestion(fileObj, platform, 'Corporate Professional', customDirectives, enableWebSearch);
@@ -449,15 +378,14 @@ export default function ResilientWorkspace() {
             fallbackHandled = true;
           }
         } catch (innerErr) {
-          console.warn('Edge OCR fallback encountered error, using deterministic safeguard:', innerErr);
+          console.warn('Edge OCR fallback encountered error:', innerErr);
         }
       }
 
       if (!fallbackHandled) {
-        // Seamless client-side local synthesizer
         const fallbackOutput = `🚀 ${rawText ? rawText.slice(0, 80) : 'High-Impact Strategic Social Insight'}\n\n` +
           `When traditional cloud architectures drop, resilient systems adapt in real time.\n\n` +
-          `Here is the key breakdown:\n` +
+          `Key Strategic Highlights:\n` +
           `• 1. Converted raw assets into structured, scannable insights.\n` +
           `• 2. Hook positioned within the first 3 lines to maximize feed retention.\n` +
           `• 3. Outbound links removed from the primary post to safeguard distribution reach.\n\n` +
@@ -473,8 +401,7 @@ export default function ResilientWorkspace() {
           contextPrecision: 0.95,
           ruleAdherence: 0.92,
           passedQualityGate: true,
-          auditReasoning:
-            'Tesseract.js on-device OCR & client-side local fallback ML loop recovered execution without data loss.',
+          auditReasoning: 'On-device OCR & client-side fallback recovered execution without data loss.',
           executionTier: 'TIER_2_EDGE_FALLBACK',
           durationMs: 340,
           extractedFilesCount: fileList.length,
@@ -513,62 +440,61 @@ export default function ResilientWorkspace() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#E5E7EB] font-sans flex flex-col relative selection:bg-blue-600 selection:text-white">
-      {/* Background Dot Grid Matrix Texture */}
+    <div className="min-h-screen bg-[#07090e] text-[#f1f5f9] flex flex-col selection:bg-blue-600 selection:text-white">
+      {/* Background Matrix Grid */}
       <div
-        className="fixed inset-0 opacity-[0.035] pointer-events-none z-0"
+        className="fixed inset-0 opacity-[0.03] pointer-events-none z-0"
         style={{
           backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
-          backgroundSize: '20px 20px',
+          backgroundSize: '24px 24px',
         }}
       />
 
-      {/* MODERN HEADER */}
-      <header className="h-16 border-b border-[#1e293b] flex items-center justify-between px-4 sm:px-6 bg-[#090b10]/90 sticky top-0 z-40 backdrop-blur-xl">
+      {/* HEADER */}
+      <header className="h-16 border-b border-slate-800/90 flex items-center justify-between px-6 bg-[#090d16]/95 sticky top-0 z-40 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-blue-500/20">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-2.5">
-              <span className="text-sm sm:text-base font-bold tracking-tight text-white font-sans">
+              <span className="text-base font-bold tracking-tight text-white">
                 Social Media Content Analyzer
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-[10px] font-mono text-blue-400 font-medium tracking-wide">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-xs font-mono text-blue-400 font-medium">
                 Vision OCR & RAG
               </span>
             </div>
-            <span className="text-[11px] text-[#94a3b8] leading-none hidden sm:inline">
+            <span className="text-xs text-slate-400 leading-none hidden sm:inline">
               Document Ingestion • Web Search Grounding • Engagement Heuristics
             </span>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setIsBenchmarkOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#334155] border border-[#334155] hover:border-blue-500/40 text-[#f1f5f9] rounded-lg text-xs font-semibold tracking-wide transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 bg-[#0d131f] hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 rounded-lg text-xs font-semibold tracking-wide transition-all shadow-sm cursor-pointer"
           >
             <Terminal className="w-3.5 h-3.5 text-blue-400" />
-            <span>CI/CD Judge Suite</span>
+            <span>CI/CD Benchmark Suite</span>
           </button>
         </div>
       </header>
 
       {/* MAIN WORKSPACE BODY */}
-      {/* MAIN WORKSPACE BODY */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 relative z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6 relative z-10">
         {/* CONTROL DECK & INGESTION LAYER */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Operational Node Config */}
-          <div className="lg:col-span-4 bg-[#090d16] border border-slate-800/80 rounded-xl p-5 space-y-5 flex flex-col justify-between shadow-xl">
-            <div className="space-y-4">
+          {/* Left Column: Optimization Strategy */}
+          <div className="lg:col-span-4 bg-[#090d16] border border-slate-800/90 rounded-xl p-6 space-y-6 flex flex-col justify-between shadow-xl">
+            <div className="space-y-5">
               <div>
-                <div className="flex items-center justify-between mb-3.5">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Optimization Strategy
-                  </h3>
+                  </h2>
                   <span className="text-xs text-blue-400 font-mono font-medium px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
                     STEP 01
                   </span>
@@ -624,11 +550,11 @@ export default function ResilientWorkspace() {
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">
                       Inference Resilience Tier
                     </label>
-                    <div className="grid grid-cols-3 gap-1 bg-[#0d131f] p-1 rounded-lg border border-slate-800 text-xs font-medium font-sans">
+                    <div className="grid grid-cols-3 gap-1 bg-[#0d131f] p-1 rounded-lg border border-slate-800 text-xs font-medium">
                       <button
                         type="button"
                         onClick={() => setInferenceMode('auto')}
-                        className={`py-1.5 rounded-md transition-colors text-center cursor-pointer ${
+                        className={`py-2 rounded-md transition-colors text-center cursor-pointer ${
                           inferenceMode === 'auto'
                             ? 'bg-blue-600 text-white font-semibold shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
@@ -639,7 +565,7 @@ export default function ResilientWorkspace() {
                       <button
                         type="button"
                         onClick={() => setInferenceMode('cloud')}
-                        className={`py-1.5 rounded-md transition-colors text-center cursor-pointer ${
+                        className={`py-2 rounded-md transition-colors text-center cursor-pointer ${
                           inferenceMode === 'cloud'
                             ? 'bg-slate-700 text-white font-semibold shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
@@ -650,7 +576,7 @@ export default function ResilientWorkspace() {
                       <button
                         type="button"
                         onClick={() => setInferenceMode('edge_fallback')}
-                        className={`py-1.5 rounded-md transition-colors text-center cursor-pointer ${
+                        className={`py-2 rounded-md transition-colors text-center cursor-pointer ${
                           inferenceMode === 'edge_fallback'
                             ? 'bg-amber-600 text-white font-semibold shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
@@ -662,100 +588,59 @@ export default function ResilientWorkspace() {
                     </div>
                   </div>
 
-                  {/* Directives Input & Viral Trend Alert */}
-                  <div className="space-y-2.5">
+                  {/* Directives Input */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                         Directives & Brand Voice
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => fetchViralTrends(platform)}
-                        className="text-xs font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="Poll Tavily / Trend Radar for real-time viral breakout hashtags"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${trendsLoading ? 'animate-spin' : ''}`} />
-                        Sync Trends
-                      </button>
+                      {customDirectives && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomDirectives('');
+                            try {
+                              localStorage.removeItem('sm_analyzer_directives');
+                            } catch {}
+                          }}
+                          className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
-
-                    {/* Viral Trend Alert Banner */}
-                    {trendAlert && (
-                      <div className="bg-[#0d131f] border border-amber-500/25 rounded-xl p-3.5 space-y-2.5 shadow-md shadow-amber-950/20 animate-fadeIn">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-amber-300 flex items-center gap-1.5 tracking-tight font-sans">
-                            <Flame className="w-4 h-4 text-amber-400 shrink-0" />
-                            {trendAlert.title}
-                          </span>
-                          <span className="text-[11px] font-medium font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25 shrink-0">
-                            Live Radar
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                          {trendAlert.message}
-                        </p>
-                        {trendAlert.recommendedTag && (
-                          <div className="pt-0.5">
-                            <button
-                              type="button"
-                              onClick={() => insertTrendToDirectives(trendAlert.recommendedTag)}
-                              className="text-xs font-medium text-amber-200 hover:text-amber-100 bg-amber-500/15 hover:bg-amber-500/25 px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                            >
-                              <TrendingUp className="w-3.5 h-3.5 text-amber-300" />
-                              Add {trendAlert.recommendedTag} to Directives
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Live Surging Hashtags Cloud */}
-                    {viralTrends.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
-                          <span>Trending Hashtags (Click to apply):</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {viralTrends.map((trend) => (
-                            <button
-                              key={trend.id}
-                              type="button"
-                              onClick={() => insertTrendToDirectives(trend.tag)}
-                              className="px-2.5 py-1 rounded-lg bg-[#0d131f] hover:bg-[#131b2e] border border-slate-800 hover:border-blue-500/40 text-xs font-medium text-slate-200 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm group"
-                              title={`Velocity: ${trend.velocity} • Topic: ${trend.topic}`}
-                            >
-                              <span className="group-hover:text-blue-300">{trend.tag}</span>
-                              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20">
-                                {trend.velocity.split(' ')[0]}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {trendNotification && (
-                      <div className="text-xs font-medium text-emerald-300 bg-emerald-950/40 border border-emerald-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-fadeIn">
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        {trendNotification}
-                      </div>
-                    )}
-
-                    <input
-                      type="text"
-                      value={customDirectives}
-                      onChange={(e) => setCustomDirectives(e.target.value)}
-                      placeholder="e.g. Focus on ROI metrics, punchy tone, include #AIWorkflows..."
-                      className="w-full bg-[#0d131f] border border-slate-800 hover:border-slate-700 focus:border-blue-500 px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all font-sans"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={customDirectives}
+                        onChange={(e) => setCustomDirectives(e.target.value)}
+                        placeholder="e.g. Focus on ROI metrics, punchy tone, concise bullet structure..."
+                        className="w-full bg-[#0d131f] border border-slate-800 hover:border-slate-700 focus:border-blue-500 px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500/30 focus:outline-none transition-all pr-8"
+                      />
+                      {customDirectives && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomDirectives('');
+                            try {
+                              localStorage.removeItem('sm_analyzer_directives');
+                            } catch {}
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer p-1"
+                          title="Clear input"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* 1-Click Presets */}
-              <div className="pt-3.5 border-t border-slate-800/80">
-                <div className="flex items-center justify-between mb-2.5">
+              <div className="pt-4 border-t border-slate-800/80">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Sample Public Test Data
                   </h3>
@@ -767,7 +652,7 @@ export default function ResilientWorkspace() {
                       key={preset.id}
                       type="button"
                       onClick={() => loadPreset(preset)}
-                      className="w-full text-left p-2.5 rounded-lg bg-[#0d131f]/80 hover:bg-[#0d131f] border border-slate-800 hover:border-slate-700 text-xs transition-colors flex items-center justify-between group cursor-pointer"
+                      className="w-full text-left p-3 rounded-lg bg-[#0d131f]/80 hover:bg-[#0d131f] border border-slate-800 hover:border-slate-700 text-xs transition-colors flex items-center justify-between group cursor-pointer"
                     >
                       <div>
                         <div className="text-slate-200 font-semibold group-hover:text-blue-400">
@@ -786,7 +671,7 @@ export default function ResilientWorkspace() {
             <button
               onClick={executePipeline}
               disabled={loading || (fileList.length === 0 && !rawText.trim())}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3 rounded-lg text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 cursor-pointer disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-3.5 rounded-lg text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 cursor-pointer disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -802,15 +687,15 @@ export default function ResilientWorkspace() {
             </button>
           </div>
 
-          {/* Right Column: Asset Ingestion Queue (Drag & Drop / Paste / Text) */}
-          <div className="lg:col-span-8 bg-[#090d16] border border-slate-800/80 rounded-xl p-5 space-y-4 flex flex-col justify-between shadow-xl">
+          {/* Right Column: Asset Ingestion Queue */}
+          <div className="lg:col-span-8 bg-[#090d16] border border-slate-800/90 rounded-xl p-6 space-y-5 flex flex-col justify-between shadow-xl">
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <h2 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                   <Upload className="w-4 h-4 text-blue-400" />
                   Asset Ingestion Queue & Multimodal Buffer
-                </h3>
-                <span className="text-xs text-slate-400 hidden sm:inline font-sans">
+                </h2>
+                <span className="text-xs text-slate-400 hidden sm:inline">
                   Clipboard Paste Enabled (<kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px]">Ctrl+V</kbd>)
                 </span>
               </div>
@@ -859,7 +744,7 @@ export default function ResilientWorkspace() {
                       <Trash2 className="w-3.5 h-3.5" /> Clear Queue
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-36 overflow-y-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-36 overflow-y-auto">
                     {fileList.map((file, idx) => (
                       <div
                         key={idx}
@@ -867,7 +752,6 @@ export default function ResilientWorkspace() {
                       >
                         <div className="flex items-center gap-2 truncate">
                           {file.previewUrl ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img
                               src={file.previewUrl}
                               alt="preview"
@@ -899,7 +783,7 @@ export default function ResilientWorkspace() {
                 </div>
               )}
 
-              {/* Direct Content / Notes with Web Speech Dictation & LocalStorage Auto-Save */}
+              {/* Direct Content / Notes with Web Speech Dictation */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -918,8 +802,6 @@ export default function ResilientWorkspace() {
                         {rawText.length} chars • ~{Math.round(rawText.split(/\s+/).length)} words
                       </span>
                     )}
-
-                    {/* Web Speech Dictation Trigger */}
                     <button
                       id="speech-dictation-btn"
                       type="button"
@@ -929,7 +811,7 @@ export default function ResilientWorkspace() {
                           ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-900/40'
                           : 'bg-[#0d131f] hover:bg-slate-800 text-blue-400 border-slate-800 hover:border-blue-500/40'
                       }`}
-                      title="Dictate article notes and engagement strategies using browser Web Speech API"
+                      title="Dictate article notes and engagement strategies"
                     >
                       {isListening ? (
                         <>
@@ -946,7 +828,6 @@ export default function ResilientWorkspace() {
                   </div>
                 </div>
 
-                {/* Speech Error Banner */}
                 {speechError && (
                   <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/30 text-xs text-rose-300 font-mono flex items-center justify-between">
                     <span>{speechError}</span>
@@ -956,21 +837,19 @@ export default function ResilientWorkspace() {
                   </div>
                 )}
 
-                {/* Active Listening Audio Banner */}
                 {isListening && (
-                  <div className="p-2.5 rounded-lg bg-rose-950/30 border border-rose-500/40 text-xs text-rose-200 font-sans flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-lg bg-rose-950/30 border border-rose-500/40 text-xs text-rose-200 flex items-center gap-2.5">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
                     <span>Microphone active: Dictate your thoughts, hooks, or notes clearly...</span>
                   </div>
                 )}
 
                 <textarea
-                  id="direct-content-textarea"
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
                   placeholder="Paste raw article draft, whitepaper notes, or click 'Voice Dictate' to speak notes..."
                   rows={4}
-                  className="w-full bg-[#0d131f] border border-slate-800 focus:border-blue-500 p-3.5 text-sm text-slate-100 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500/30 focus:outline-none font-sans leading-relaxed transition-all"
+                  className="w-full bg-[#0d131f] border border-slate-800 focus:border-blue-500 p-3.5 text-sm text-slate-100 placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500/30 focus:outline-none leading-relaxed transition-all"
                 />
               </div>
             </div>
@@ -979,14 +858,14 @@ export default function ResilientWorkspace() {
 
         {/* PROCESSING PULSE */}
         {loading && (
-          <div className="bg-[#090d16] border border-blue-500/30 rounded-xl p-4.5 flex items-center gap-3.5 animate-pulse shadow-2xl">
+          <div className="bg-[#090d16] border border-blue-500/30 rounded-xl p-5 flex items-center gap-3.5 animate-pulse shadow-2xl">
             <RefreshCw className="w-5 h-5 text-blue-400 animate-spin shrink-0" />
             <div className="text-xs">
               <div className="font-semibold text-white tracking-wide">
                 Processing Ingestion & RAG Accuracy Pipeline...
               </div>
               <div className="text-xs text-slate-400 font-mono mt-0.5">
-                LlamaParse Layout Extraction → LlamaExtract Schema Blueprint → HNSW Multi-Hop Graph Traversal → LLM-As-A-Judge Quality Gate
+                Vision Layout Extraction → Schema Blueprint → Multi-Hop Graph Traversal → LLM-As-A-Judge Quality Gate
               </div>
             </div>
           </div>
@@ -994,79 +873,79 @@ export default function ResilientWorkspace() {
 
         {/* RESULTS WORKSPACE & MULTI-INSPECTOR TABS */}
         {output && (
-          <section className="bg-[#090d16] border border-slate-800/80 rounded-xl p-5 sm:p-6 shadow-2xl space-y-6">
+          <section className="bg-[#090d16] border border-slate-800/90 rounded-xl p-6 shadow-2xl space-y-6">
             {/* Tabs Navigation */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div className="flex flex-wrap items-center gap-1.5 bg-[#0d131f] p-1 rounded-lg border border-slate-800">
+              <div className="flex flex-wrap items-center gap-2 bg-[#0d131f] p-1.5 rounded-lg border border-slate-800">
                 <button
                   onClick={() => setActiveTab('output')}
-                  className={`px-3.5 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
                     activeTab === 'output'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Optimized Output Outflow
+                  <span>Output Workspace</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('graph')}
-                  className={`px-3.5 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
                     activeTab === 'graph'
                       ? 'bg-purple-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Database className="w-3.5 h-3.5" />
-                  Knowledge Graph Traversal
+                  <span>Knowledge Graph</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('blueprint')}
-                  className={`px-3.5 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
                     activeTab === 'blueprint'
                       ? 'bg-emerald-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  LlamaExtract Blueprint
+                  <span>Structured Blueprint</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('telemetry')}
-                  className={`px-3.5 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
+                  className={`px-4 py-2 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
                     activeTab === 'telemetry'
                       ? 'bg-amber-600 text-white shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Activity className="w-3.5 h-3.5" />
-                  RAG Accuracy Telemetry
+                  <span>RAG Accuracy Gate</span>
                 </button>
               </div>
 
               {/* Badges */}
               {telemetry && (
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs rounded-md font-mono">
+                  <span className="px-3 py-1.5 border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs rounded-md font-mono">
                     Grounded: {telemetry.groundedness}
                   </span>
-                  <span className="px-2.5 py-1 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs rounded-md font-mono">
+                  <span className="px-3 py-1.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs rounded-md font-mono">
                     Audit: {telemetry.passedQualityGate ? 'Passed' : 'Flagged'}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* TAB 1: STRATEGIC CONTENT OUTFLOW */}
+            {/* TAB 1: OUTPUT WORKSPACE & PREVIEW */}
             {activeTab === 'output' && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Output Content Display */}
                 <div className="lg:col-span-7 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-1 bg-[#0d131f] p-1 rounded-lg border border-slate-800">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-1.5 bg-[#0d131f] p-1.5 rounded-lg border border-slate-800">
                       <button
                         onClick={() => setOutputSubView('clean')}
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                           outputSubView === 'clean'
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
@@ -1077,7 +956,7 @@ export default function ResilientWorkspace() {
                       <button
                         id="toggle-diff-subview-btn"
                         onClick={() => setOutputSubView('diff')}
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        className={`px-3.5 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                           outputSubView === 'diff'
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : 'text-slate-400 hover:text-indigo-300'
@@ -1089,7 +968,7 @@ export default function ResilientWorkspace() {
                       </button>
                       <button
                         onClick={() => setOutputSubView('full')}
-                        className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                           outputSubView === 'full'
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
@@ -1100,7 +979,7 @@ export default function ResilientWorkspace() {
                       {suggestionsText && (
                         <button
                           onClick={() => setOutputSubView('suggestions')}
-                          className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
+                          className={`px-3.5 py-1.5 text-xs rounded-md font-medium transition-colors cursor-pointer ${
                             outputSubView === 'suggestions'
                               ? 'bg-amber-600 text-white shadow-sm'
                               : 'text-slate-400 hover:text-slate-200'
@@ -1120,12 +999,12 @@ export default function ResilientWorkspace() {
                         {isCleanCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            Clean Copied!
+                            <span>Copied Clean!</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            Copy Clean Post
+                            <span>Copy Post</span>
                           </>
                         )}
                       </button>
@@ -1136,18 +1015,18 @@ export default function ResilientWorkspace() {
                         {isCopied ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            Copied All!
+                            <span>Copied All</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            All
+                            <span>Copy All</span>
                           </>
                         )}
                       </button>
                       <button
                         onClick={downloadMarkdown}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0d131f] hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d131f] hover:bg-slate-800 border border-slate-800 text-slate-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5" />
                       </button>
@@ -1155,7 +1034,7 @@ export default function ResilientWorkspace() {
                   </div>
 
                   {/* Strategic Metadata Chips Bar */}
-                  <div className="bg-[#0d131f]/80 border border-slate-800 rounded-lg p-2.5 flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400">
+                  <div className="bg-[#0d131f]/80 border border-slate-800 rounded-lg p-3 flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400">
                     <span className="flex items-center gap-1 px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-semibold">
                       <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
                       {platform.toUpperCase()} STRATEGY
@@ -1177,54 +1056,35 @@ export default function ResilientWorkspace() {
                     )}
                   </div>
 
-                  {/* Web Search Grounding Citations Card (if available) */}
-                  {webSearchData?.enabled && (webSearchData.queries?.length > 0 || webSearchData.sources?.length > 0) && (
-                    <div className="bg-[#111827]/80 border border-blue-500/30 rounded-xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Globe className="w-4 h-4 text-blue-400" />
-                          <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-                            Live Web Search & Real-Time Trend Grounding
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                          {webSearchData.sources?.length || 0} Sources Grounded
+                  {/* Live Web Search Grounding Citations Card */}
+                  {webSearchData && webSearchData.enabled && (
+                    <div className="bg-[#0d131f] border border-blue-500/20 p-4 rounded-xl space-y-2.5 shadow-sm">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-blue-300 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-blue-400" />
+                          Live Google Search Grounding Sources ({webSearchData.sources.length})
                         </span>
+                        {webSearchData.queries.length > 0 && (
+                          <span className="text-slate-400 font-mono text-xs">
+                            Query: &ldquo;{webSearchData.queries[0]}&rdquo;
+                          </span>
+                        )}
                       </div>
-
-                      {webSearchData.queries?.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-[#9CA3AF] font-mono uppercase">Search Queries Executed:</div>
-                          <div className="flex flex-wrap gap-1.5">
-                            {webSearchData.queries.map((q, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 rounded bg-[#1F2937] text-[11px] text-blue-300 border border-[#374151] flex items-center gap-1"
-                              >
-                                <Search className="w-2.5 h-2.5 text-blue-400" />
-                                {q}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {webSearchData.sources?.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="text-[10px] text-[#9CA3AF] font-mono uppercase">Verified References & Citations:</div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                            {webSearchData.sources.map((src, idx) => (
+                      {webSearchData.sources.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {webSearchData.sources.slice(0, 4).map((source, idx) => (
                               <a
                                 key={idx}
-                                href={src.uri}
+                                href={source.uri}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="p-2 rounded bg-[#0A0A0A] hover:bg-[#1F2937] border border-[#1F2937] hover:border-blue-500/40 text-xs text-[#E5E7EB] flex items-center justify-between group transition-colors"
+                                className="flex items-center justify-between p-2 rounded-lg bg-[#090d16] hover:bg-blue-950/30 border border-slate-800 hover:border-blue-500/30 text-xs transition-colors group"
                               >
-                                <span className="truncate pr-2 font-medium group-hover:text-blue-300">
-                                  {src.title || src.uri}
+                                <span className="truncate text-slate-300 group-hover:text-blue-300">
+                                  {source.title || source.uri}
                                 </span>
-                                <ExternalLink className="w-3 h-3 text-[#6B7280] group-hover:text-blue-400 shrink-0" />
+                                <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 shrink-0" />
                               </a>
                             ))}
                           </div>
@@ -1234,9 +1094,9 @@ export default function ResilientWorkspace() {
                   )}
 
                   {/* Formatted Post Content / Diff Viewer */}
-                  <div className="bg-[#0A0A0A]/95 border border-[#1F2937] p-6 sm:p-7 rounded-xl shadow-2xl backdrop-blur-md space-y-4">
+                  <div className="bg-[#090d16] border border-slate-800 p-6 rounded-xl shadow-2xl backdrop-blur-md space-y-4">
                     {outputSubView === 'clean' && (
-                      <div className="text-[#E5E7EB] text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans selection:bg-blue-600">
+                      <div className="text-slate-100 text-sm sm:text-base leading-relaxed whitespace-pre-wrap selection:bg-blue-600">
                         {cleanPostText}
                       </div>
                     )}
@@ -1255,13 +1115,13 @@ export default function ResilientWorkspace() {
                     )}
 
                     {outputSubView === 'full' && (
-                      <div className="prose prose-invert max-w-none text-[#D1D5DB] text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans">
+                      <div className="prose prose-invert max-w-none text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
                         <ReactMarkdown>{output}</ReactMarkdown>
                       </div>
                     )}
 
                     {outputSubView === 'suggestions' && suggestionsText && (
-                      <div className="prose prose-invert max-w-none text-[#D1D5DB] text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans bg-[#111827]/40 p-4 rounded-lg border border-amber-500/20">
+                      <div className="prose prose-invert max-w-none text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap bg-[#0d131f] p-4.5 rounded-lg border border-amber-500/20">
                         <ReactMarkdown>{suggestionsText}</ReactMarkdown>
                       </div>
                     )}
@@ -1310,24 +1170,24 @@ export default function ResilientWorkspace() {
       </main>
 
       {/* FOOTER BAR */}
-      <footer className="h-10 border-t border-[#1F2937] bg-[#050505] flex items-center justify-between px-4 sm:px-6 relative z-10">
+      <footer className="h-12 border-t border-slate-800/80 bg-[#07090e] flex items-center justify-between px-6 relative z-10">
         <div className="flex gap-4 items-center">
-          <span className="text-[9px] font-mono text-[#4B5563] uppercase tracking-tighter">
-            ID: DC92-LLAMA-8821
+          <span className="text-xs font-mono text-slate-500 uppercase tracking-tighter">
+            System ID: ENTR-RAG-902
           </span>
-          <span className="text-[9px] font-mono text-[#4B5563] uppercase tracking-tighter">
-            Region: us-east-1
+          <span className="text-xs font-mono text-slate-500 uppercase tracking-tighter">
+            Cluster: edge-cloud-mesh
           </span>
         </div>
-        <div className="flex gap-4 items-center">
-          <span className="text-[9px] text-[#6B7280] uppercase font-bold tracking-wider">
-            System Health
+        <div className="flex gap-3 items-center">
+          <span className="text-xs text-slate-400 uppercase font-semibold tracking-wider">
+            Engine Health
           </span>
           <div className="flex gap-1 items-center">
-            <div className="w-1 h-3 bg-emerald-500" />
-            <div className="w-1 h-3 bg-emerald-500" />
-            <div className="w-1 h-3 bg-emerald-500" />
-            <div className="w-1 h-3 bg-emerald-700" />
+            <div className="w-1.5 h-3 bg-emerald-500 rounded-xs" />
+            <div className="w-1.5 h-3 bg-emerald-500 rounded-xs" />
+            <div className="w-1.5 h-3 bg-emerald-500 rounded-xs" />
+            <div className="w-1.5 h-3 bg-emerald-400 rounded-xs" />
           </div>
         </div>
       </footer>
