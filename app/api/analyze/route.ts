@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       payloadArray = [],
-      targetPlatform = 'linkedin',
+      targetPlatform = 'general',
       inferenceMode = 'auto', // 'auto' | 'cloud' | 'edge_fallback'
       customDirectives = '',
       rawDirectText = '',

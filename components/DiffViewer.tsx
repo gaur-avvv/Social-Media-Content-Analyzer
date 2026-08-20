@@ -62,17 +62,17 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
   };
 
   return (
-    <div id="diff-viewer-root" className="bg-[#090b10] border border-slate-800/80 rounded-xl p-5 space-y-4">
+    <div id="diff-viewer-root" className="bg-[#0f172a]/90 border border-slate-800/90 rounded-2xl p-5 sm:p-6 space-y-5 shadow-2xl backdrop-blur-xl">
       {/* Header controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-white font-mono tracking-wider uppercase flex items-center gap-2">
               Optimization Differential Analysis
-              <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
                 {platform.toUpperCase()}
               </span>
             </h4>
@@ -83,15 +83,15 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
         </div>
 
         {/* View toggles */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center bg-[#0b0f19] border border-slate-800 rounded-xl p-1">
             <button
               id="diff-mode-inline-btn"
               type="button"
               onClick={() => setViewMode('inline')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 viewMode === 'inline'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -102,9 +102,9 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
               id="diff-mode-split-btn"
               type="button"
               onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 viewMode === 'split'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -113,12 +113,12 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
             </button>
           </div>
 
-          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px]">
+          <div className="flex items-center bg-[#0b0f19] border border-slate-800 rounded-xl p-1 text-xs">
             <button
               type="button"
               onClick={() => setDiffGranularity('words')}
-              className={`px-2 py-1 rounded font-mono ${
-                diffGranularity === 'words' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              className={`px-2.5 py-1.5 rounded-lg font-mono transition-all cursor-pointer ${
+                diffGranularity === 'words' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Word-Level
@@ -126,8 +126,8 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
             <button
               type="button"
               onClick={() => setDiffGranularity('lines')}
-              className={`px-2 py-1 rounded font-mono ${
-                diffGranularity === 'lines' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-500 hover:text-slate-300'
+              className={`px-2.5 py-1.5 rounded-lg font-mono transition-all cursor-pointer ${
+                diffGranularity === 'lines' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               Line-Level
@@ -138,7 +138,7 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
             id="diff-copy-optimized-btn"
             type="button"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-[11px] transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-medium transition-all cursor-pointer shadow-sm active:scale-95"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
             <span>{copied ? 'Copied' : 'Copy Optimized'}</span>
@@ -147,20 +147,20 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
       </div>
 
       {/* Metrics Banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-slate-950/80 border border-emerald-500/20 rounded-lg p-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-[#0b1120] border border-emerald-500/20 rounded-xl p-3 shadow-md">
           <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Enhanced / Added</span>
           <span className="text-sm font-bold text-emerald-400 font-mono">+{stats.addedWords} words</span>
         </div>
-        <div className="bg-slate-950/80 border border-rose-500/20 rounded-lg p-2.5">
+        <div className="bg-[#0b1120] border border-rose-500/20 rounded-xl p-3 shadow-md">
           <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Trimmed / Replaced</span>
           <span className="text-sm font-bold text-rose-400 font-mono">-{stats.removedWords} words</span>
         </div>
-        <div className="bg-slate-950/80 border border-blue-500/20 rounded-lg p-2.5">
+        <div className="bg-[#0b1120] border border-blue-500/20 rounded-xl p-3 shadow-md">
           <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Retained Core</span>
           <span className="text-sm font-bold text-slate-200 font-mono">{stats.unchangedWords} words</span>
         </div>
-        <div className="bg-slate-950/80 border border-purple-500/20 rounded-lg p-2.5">
+        <div className="bg-[#0b1120] border border-purple-500/20 rounded-xl p-3 shadow-md">
           <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">Engagement Lift</span>
           <span className="text-sm font-bold text-purple-400 font-mono">+{Math.max(18, stats.optimizationRatio)}% Hook Index</span>
         </div>
@@ -170,7 +170,7 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
       {viewMode === 'inline' ? (
         <div
           id="unified-diff-container"
-          className="bg-slate-950/90 border border-slate-800/80 rounded-lg p-4 font-mono text-xs leading-relaxed max-h-[440px] overflow-y-auto whitespace-pre-wrap selection:bg-blue-600 selection:text-white"
+          className="bg-[#080c14] border border-slate-800 rounded-xl p-4.5 font-mono text-xs leading-relaxed max-h-[440px] overflow-y-auto whitespace-pre-wrap selection:bg-blue-600 selection:text-white"
         >
           {diffResults.map((part, index) => {
             if (part.added) {
@@ -200,7 +200,7 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
         </div>
       ) : (
         <div id="split-diff-container" className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[440px] overflow-y-auto">
-          <div className="bg-slate-950/90 border border-rose-500/20 rounded-lg p-4 font-mono text-xs leading-relaxed space-y-2">
+          <div className="bg-[#080c14] border border-rose-500/20 rounded-xl p-4 font-mono text-xs leading-relaxed space-y-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-[11px] font-bold text-rose-400 uppercase tracking-wider">
               <span>Original Draft Content</span>
               <span className="text-slate-500">Pre-Optimization</span>
@@ -210,13 +210,13 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
             </div>
           </div>
 
-          <div className="bg-slate-950/90 border border-emerald-500/20 rounded-lg p-4 font-mono text-xs leading-relaxed space-y-2">
+          <div className="bg-[#080c14] border border-emerald-500/20 rounded-xl p-4 font-mono text-xs leading-relaxed space-y-2">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 Optimized Copy
               </span>
-              <span className="text-blue-400 flex items-center gap-1">
+              <span className="text-blue-400 flex items-center gap-1 text-[11px]">
                 Active <ArrowRight className="w-3 h-3" />
               </span>
             </div>
@@ -228,13 +228,13 @@ export function DiffViewer({ originalText, optimizedText, platform = 'linkedin' 
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono text-slate-400 pt-1">
+      <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono text-slate-400 pt-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
           Green: Strategic hook additions, bullet formatting & high-converting CTAs
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded bg-rose-500 inline-block"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
           Red Strike: Low-retention text walls & penalized outbound body links
         </span>
       </div>

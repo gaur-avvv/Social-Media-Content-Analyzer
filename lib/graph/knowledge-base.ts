@@ -22,6 +22,21 @@ export interface TraversalPath {
 
 export const SEED_NODES: GraphNode[] = [
   {
+    id: 'platform:general',
+    nodeType: 'PLATFORM',
+    label: 'Universal Social Algorithm (Omni-Channel)',
+    metadata: {
+      platformName: 'General / Multi-Platform',
+      maxChar: 2500,
+      optimalCharRange: '800 - 1500',
+      hookPosition: 'Line 1 - 2 (curiosity gap, pattern interrupt)',
+      ctaRule: 'Universal conversation catalyst or bookmark prompt',
+      recommendedTone: 'High-clarity, authoritative, engaging, universally accessible',
+      algorithmFocus: 'Audience retention, bookmark saves, shares, meaningful replies',
+      lineBreakStyle: 'Clean scannable spacing with visual anchors',
+    },
+  },
+  {
     id: 'platform:linkedin',
     nodeType: 'PLATFORM',
     label: 'LinkedIn Feed Algorithm',
@@ -211,6 +226,11 @@ export const SEED_NODES: GraphNode[] = [
 ];
 
 export const SEED_EDGES: GraphEdge[] = [
+  { id: 'edge-0a', sourceNode: 'platform:general', targetNode: 'framework:pas', relationship: 'OPTIMIZED_BY', weight: 0.94 },
+  { id: 'edge-0b', sourceNode: 'platform:general', targetNode: 'framework:aida', relationship: 'OPTIMIZED_BY', weight: 0.92 },
+  { id: 'edge-0c', sourceNode: 'platform:general', targetNode: 'layout:high-density', relationship: 'REQUIRES_FORMAT', weight: 0.90 },
+  { id: 'edge-0d', sourceNode: 'platform:general', targetNode: 'rule:hook_first_3_lines', relationship: 'CONSTRAINED_BY', weight: 0.96 },
+
   { id: 'edge-1', sourceNode: 'platform:linkedin', targetNode: 'framework:pas', relationship: 'OPTIMIZED_BY', weight: 0.95 },
   { id: 'edge-2', sourceNode: 'platform:linkedin', targetNode: 'framework:bab', relationship: 'OPTIMIZED_BY', weight: 0.88 },
   { id: 'edge-3', sourceNode: 'platform:linkedin', targetNode: 'layout:high-density', relationship: 'REQUIRES_FORMAT', weight: 0.92 },
