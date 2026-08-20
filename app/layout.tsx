@@ -1,25 +1,36 @@
 import type {Metadata} from 'next';
-import './globals.css'; // Global styles
+import {Plus_Jakarta_Sans, JetBrains_Mono} from 'next/font/google';
+import './globals.css';
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'Vision Graph Copilot | Enterprise Social Media Content Analyzer',
-  description: 'Enterprise-grade hybrid edge & cloud social media content analyzer and RAG copilot powered by LlamaIndex, Google Gemini, Knowledge Graph routing, and automated LLM-as-a-judge evaluation.',
+  title: 'Social Media Content Analyzer | AI-Powered Engagement & Extraction',
+  description: 'Clean, modern social media content analyzer with PDF extraction, Vision OCR, Web-grounded trends, and multi-platform engagement optimization.',
   openGraph: {
-    title: 'Vision Graph Copilot | Enterprise Social Media Content Analyzer',
-    description: 'Enterprise-grade hybrid edge & cloud social media content analyzer and RAG copilot powered by LlamaIndex, Google Gemini, Knowledge Graph routing, and automated LLM-as-a-judge evaluation.',
+    title: 'Social Media Content Analyzer | AI-Powered Engagement & Extraction',
+    description: 'Clean, modern social media content analyzer with PDF extraction, Vision OCR, Web-grounded trends, and multi-platform engagement optimization.',
     type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Vision Graph Copilot | Enterprise Social Media Content Analyzer',
-    description: 'Enterprise-grade hybrid edge & cloud social media content analyzer and RAG copilot powered by LlamaIndex, Google Gemini, Knowledge Graph routing, and automated LLM-as-a-judge evaluation.',
   },
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en">
-      <body suppressHydrationWarning>{children}</body>
+    <html lang="en" className={`${plusJakarta.variable} ${jetbrainsMono.variable}`}>
+      <body className="font-sans antialiased bg-[#090b10] text-[#f1f5f9] selection:bg-blue-600 selection:text-white" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
+

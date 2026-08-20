@@ -25,6 +25,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Lightbulb,
+  Globe,
+  Search,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { KnowledgeGraphVisualizer } from '@/components/KnowledgeGraphVisualizer';
@@ -103,6 +105,12 @@ export default function ResilientWorkspace() {
   const [isCleanCopied, setIsCleanCopied] = useState<boolean>(false);
   const [outputSubView, setOutputSubView] = useState<'clean' | 'full' | 'suggestions'>('clean');
   const [isBenchmarkOpen, setIsBenchmarkOpen] = useState<boolean>(false);
+  const [enableWebSearch, setEnableWebSearch] = useState<boolean>(true);
+  const [webSearchData, setWebSearchData] = useState<{
+    enabled: boolean;
+    queries: string[];
+    sources: Array<{ title: string; uri: string }>;
+  } | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
   const cleanPostText = React.useMemo(() => cleanSocialPostText(output), [output]);
@@ -220,6 +228,7 @@ export default function ResilientWorkspace() {
           inferenceMode,
           customDirectives,
           rawDirectText: rawText,
+          enableWebSearch,
         }),
       });
 
@@ -232,6 +241,7 @@ export default function ResilientWorkspace() {
       setBlueprint(data.schemaBlueprint);
       setKnowledgeGraph(data.knowledgeGraph);
       setTelemetry(data.metrics);
+      setWebSearchData(data.webSearch || null);
       setExtractionLogs(data.extractionLogs || []);
       setEdgeStatus(
         data.metrics?.executionTier?.includes('EDGE')
@@ -310,84 +320,49 @@ export default function ResilientWorkspace() {
         }}
       />
 
-      {/* HEADER & ARCHITECTURE STATUS BAR */}
-      <header className="h-16 border-b border-[#1F2937] flex items-center justify-between px-4 sm:px-6 bg-[#0B0B0C] sticky top-0 z-40 backdrop-blur-md">
+      {/* MODERN HEADER */}
+      <header className="h-16 border-b border-[#1e293b] flex items-center justify-between px-4 sm:px-6 bg-[#090b10]/90 sticky top-0 z-40 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white text-xs shadow-md shadow-blue-900/30">
-            R
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shadow-md shadow-blue-500/20">
+            <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tighter uppercase text-white font-mono">
-                Enterprise Content Analyzer
+            <div className="flex items-center gap-2.5">
+              <span className="text-sm sm:text-base font-bold tracking-tight text-white font-sans">
+                Social Media Content Analyzer
               </span>
-              <span className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-blue-500/10 border border-blue-500/30 text-[9px] font-mono text-blue-400 font-bold uppercase tracking-widest">
-                v2.5.0-HYBRID-EDGE
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-[10px] font-mono text-blue-400 font-medium tracking-wide">
+                Vision OCR & RAG
               </span>
             </div>
-            <span className="text-[10px] text-[#9CA3AF] font-mono leading-none">
-              Resilient Multimodal RAG Copilot & Knowledge Graph Routing
+            <span className="text-[11px] text-[#94a3b8] leading-none hidden sm:inline">
+              Document Ingestion • Web Search Grounding • Engagement Heuristics
             </span>
           </div>
         </div>
 
-        {/* Live Architecture Status Indicators */}
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="hidden md:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-            <span className="text-[11px] font-mono uppercase text-[#9CA3AF] tracking-wider">
-              Cloud (Primary): Gemini 2.5 Flash
-            </span>
-          </div>
-
-          <div className="hidden lg:flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]" />
-            <span className="text-[11px] font-mono uppercase text-[#9CA3AF] tracking-wider">
-              Edge (Standby): ONNX Runtime
-            </span>
-          </div>
-
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <button
             onClick={() => setIsBenchmarkOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] hover:bg-[#1F2937] border border-[#1F2937] text-white rounded text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#334155] border border-[#334155] hover:border-blue-500/40 text-[#f1f5f9] rounded-lg text-xs font-semibold tracking-wide transition-all shadow-sm cursor-pointer"
           >
             <Terminal className="w-3.5 h-3.5 text-blue-400" />
-            <span className="hidden sm:inline">CI/CD Judge Suite</span>
-            <span className="sm:hidden">Judge</span>
+            <span>CI/CD Judge Suite</span>
           </button>
         </div>
       </header>
-
-      {/* SUB-HEADER MESH CHIPS */}
-      <div className="bg-[#0A0A0A] border-b border-[#1F2937] px-4 sm:px-6 py-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono relative z-10">
-        <div className="flex items-center justify-between bg-[#111827]/70 px-3 py-1.5 rounded border border-[#1F2937]">
-          <span className="text-[#6B7280]">TIER 1 CLOUD:</span>
-          <span className="text-blue-400 font-bold">LlamaParse + Gemini</span>
-        </div>
-        <div className="flex items-center justify-between bg-[#111827]/70 px-3 py-1.5 rounded border border-[#1F2937]">
-          <span className="text-[#6B7280]">TIER 2 FALLBACK:</span>
-          <span className="text-amber-400 font-bold">WebTFLite / ONNX</span>
-        </div>
-        <div className="flex items-center justify-between bg-[#111827]/70 px-3 py-1.5 rounded border border-[#1F2937]">
-          <span className="text-[#6B7280]">GRAPH ROUTING:</span>
-          <span className="text-purple-400 font-bold">HNSW Multi-Hop</span>
-        </div>
-        <div className="flex items-center justify-between bg-[#111827]/70 px-3 py-1.5 rounded border border-[#1F2937]">
-          <span className="text-[#6B7280]">STATUS:</span>
-          <span className="text-emerald-400 font-bold">{edgeStatus}</span>
-        </div>
-      </div>
 
       {/* MAIN WORKSPACE BODY */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 relative z-10">
         {/* CONTROL DECK & INGESTION LAYER */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Operational Node Config (w-72 equivalent styling) */}
+          {/* Left Column: Operational Node Config */}
           <div className="lg:col-span-4 bg-[#0A0A0A] border border-[#1F2937] rounded-xl p-5 space-y-5 flex flex-col justify-between shadow-xl">
             <div className="space-y-4">
               <div>
                 <h3 className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.2em] mb-4 flex items-center justify-between">
-                  <span>Operational Node</span>
+                  <span>Optimization Strategy</span>
                   <span className="text-blue-400 font-mono">STEP 01</span>
                 </h3>
 
@@ -395,7 +370,7 @@ export default function ResilientWorkspace() {
                   {/* Platform Selector */}
                   <div>
                     <label className="text-[9px] text-[#4B5563] font-bold uppercase mb-1.5 block tracking-wider">
-                      Target Platform
+                      Target Social Platform
                     </label>
                     <select
                       value={platform}
@@ -408,6 +383,32 @@ export default function ResilientWorkspace() {
                       <option value="threads">Meta Threads (Candid Conversational Arc)</option>
                       <option value="youtube_community">YouTube Community (Poll & Video CTA)</option>
                     </select>
+                  </div>
+
+                  {/* Web Search Grounding Toggle */}
+                  <div className="bg-[#111827] border border-[#1F2937] rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`p-1.5 rounded ${enableWebSearch ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-800 text-gray-400'}`}>
+                        <Globe className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-semibold text-white">Live Web Search Grounding</div>
+                        <div className="text-[9px] text-[#9CA3AF]">Ground in real-time trends & algorithm rules</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnableWebSearch(!enableWebSearch)}
+                      className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${
+                        enableWebSearch ? 'bg-blue-600' : 'bg-[#374151]'
+                      }`}
+                    >
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.75 transition-transform ${
+                          enableWebSearch ? 'left-4.5' : 'left-1'
+                        }`}
+                      />
+                    </button>
                   </div>
 
                   {/* Inference Tier Mode */}
@@ -448,7 +449,7 @@ export default function ResilientWorkspace() {
                         }`}
                         title="Simulate cloud failure to test edge fallback"
                       >
-                        Edge Fallback
+                        Edge
                       </button>
                     </div>
                   </div>
@@ -472,7 +473,7 @@ export default function ResilientWorkspace() {
               {/* 1-Click Presets */}
               <div className="pt-3 border-t border-[#1F2937]">
                 <h3 className="text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.2em] mb-2 flex items-center justify-between">
-                  <span>Quick Scenario Presets</span>
+                  <span>Sample Public Test Data</span>
                   <Sparkles className="w-3 h-3 text-amber-400" />
                 </h3>
                 <div className="space-y-1.5">
@@ -505,12 +506,12 @@ export default function ResilientWorkspace() {
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  Executing Analysis...
+                  Analyzing & Optimizing...
                 </>
               ) : (
                 <>
                   <Zap className="w-4 h-4 fill-white" />
-                  Execute Analysis
+                  Analyze & Optimize Content
                 </>
               )}
             </button>
@@ -812,7 +813,69 @@ export default function ResilientWorkspace() {
                     <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300">
                       HOOK &lt;140 CHARS
                     </span>
+                    {webSearchData?.enabled && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold">
+                        <Globe className="w-3 h-3 text-emerald-400" />
+                        WEB SEARCH GROUNDED
+                      </span>
+                    )}
                   </div>
+
+                  {/* Web Search Grounding Citations Card (if available) */}
+                  {webSearchData?.enabled && (webSearchData.queries?.length > 0 || webSearchData.sources?.length > 0) && (
+                    <div className="bg-[#111827]/80 border border-blue-500/30 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-400" />
+                          <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                            Live Web Search & Real-Time Trend Grounding
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                          {webSearchData.sources?.length || 0} Sources Grounded
+                        </span>
+                      </div>
+
+                      {webSearchData.queries?.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-[10px] text-[#9CA3AF] font-mono uppercase">Search Queries Executed:</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {webSearchData.queries.map((q, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded bg-[#1F2937] text-[11px] text-blue-300 border border-[#374151] flex items-center gap-1"
+                              >
+                                <Search className="w-2.5 h-2.5 text-blue-400" />
+                                {q}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {webSearchData.sources?.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-[10px] text-[#9CA3AF] font-mono uppercase">Verified References & Citations:</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {webSearchData.sources.map((src, idx) => (
+                              <a
+                                key={idx}
+                                href={src.uri}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 rounded bg-[#0A0A0A] hover:bg-[#1F2937] border border-[#1F2937] hover:border-blue-500/40 text-xs text-[#E5E7EB] flex items-center justify-between group transition-colors"
+                              >
+                                <span className="truncate pr-2 font-medium group-hover:text-blue-300">
+                                  {src.title || src.uri}
+                                </span>
+                                <ExternalLink className="w-3 h-3 text-[#6B7280] group-hover:text-blue-400 shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Formatted Post Content */}
                   <div className="bg-[#0A0A0A]/95 border border-[#1F2937] p-6 sm:p-7 rounded-xl shadow-2xl backdrop-blur-md space-y-4">

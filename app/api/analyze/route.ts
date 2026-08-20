@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       inferenceMode = 'auto', // 'auto' | 'cloud' | 'edge_fallback'
       customDirectives = '',
       rawDirectText = '',
+      enableWebSearch = true,
     } = body;
 
     // Check if we have any inputs
@@ -312,6 +313,9 @@ TASK:
 5. Conclude with '## IMPROVED ENGAGEMENT SUGGESTIONS' with bulleted algorithmic rationale.
 `;
 
+    let searchGroundingSources: Array<{ title: string; uri: string }> = [];
+    let searchQueries: string[] = [];
+
     if (ai) {
       try {
         const creatorResponse = await ai.models.generateContent({
@@ -320,9 +324,27 @@ TASK:
           config: {
             systemInstruction: systemInstructions,
             temperature: 0.7,
+            tools: enableWebSearch ? [{ googleSearch: {} }] : undefined,
           },
         });
         optimizedOutput = creatorResponse.text || 'Unable to generate optimized copy.';
+
+        // Extract Google Search Grounding metadata if present
+        const candidate = creatorResponse.candidates?.[0];
+        const groundingMeta = candidate?.groundingMetadata;
+        if (groundingMeta) {
+          if (Array.isArray(groundingMeta.webSearchQueries)) {
+            searchQueries = groundingMeta.webSearchQueries;
+          }
+          if (Array.isArray(groundingMeta.groundingChunks)) {
+            searchGroundingSources = groundingMeta.groundingChunks
+              .map((c: any) => ({
+                title: c.web?.title || 'Web Search Source',
+                uri: c.web?.uri || '',
+              }))
+              .filter((s: any) => Boolean(s.uri));
+          }
+        }
       } catch (err: any) {
         console.error('Creator Agent generation error:', err);
         optimizedOutput = `${structuralBlueprint.coreTopic}\n\n` +
@@ -428,6 +450,11 @@ Evaluate and return JSON:
         extractedFilesCount: payloadArray.length,
         visualDensity: maximumVisualDensity,
         timestamp: new Date().toISOString(),
+      },
+      webSearch: {
+        enabled: Boolean(enableWebSearch),
+        queries: searchQueries,
+        sources: searchGroundingSources,
       },
       extractionLogs,
     });
